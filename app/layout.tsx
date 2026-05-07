@@ -21,11 +21,11 @@ const fontMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: 'SIVRON - Sistem Informasi Anggaran',
+    default: 'SIVRON - Aplikasi Verifikasi RKA/DPA',
     template: '%s | SIVRON',
   },
-  description: 'Sistem penganggaran elektronik SIVRON untuk pengelolaan dan pengajuan anggaran pemerintah daerah secara digital dan akuntabel.',
-  keywords: ['sivron', 'e-budgeting', 'penganggaran', 'anggaran', 'pemerintah', 'APBD', 'RAB', 'digital'],
+  description: 'SIVRON adalah aplikasi verifikasi RKA/DPA dimana berbagai instansi menginput berbagai dokumen lalu akan di verifikasi oleh 4 admin (Bapperida, Setda, Bidang Anggaran BKAD, Bidang Aset BKAD).',
+  keywords: ['sivron', 'verifikasi', 'RKA', 'DPA', 'Bapperida', 'Setda', 'BKAD', 'dokumen'],
   authors: [{ name: 'SIVRON Team' }],
   generator: 'v0.app',
   icons: {

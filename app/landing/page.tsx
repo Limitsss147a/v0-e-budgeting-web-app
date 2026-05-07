@@ -76,7 +76,7 @@ export default function LandingPage() {
         
         {/* Call to Action Footer */}
         <section className="py-24 relative bg-[#050508] flexflex-col items-center justify-center text-center px-4 border-t border-white/5">
-          <h2 className="font-heading text-4xl md:text-5xl font-bold mb-8">Siap Mengelola Anggaran?</h2>
+          <h2 className="font-heading text-4xl md:text-5xl font-bold mb-8">Siap Melakukan Verifikasi?</h2>
           <Button asChild className="rounded-full bg-sky-500 hover:bg-sky-600 text-white font-bold h-14 px-10 text-sm tracking-widest transition-transform hover:scale-105 neon-border-sky">
             <Link href="/auth/login" className="flex items-center">
               BUKA AKSES PORTAL <ArrowRight className="ml-2 w-5 h-5" />
