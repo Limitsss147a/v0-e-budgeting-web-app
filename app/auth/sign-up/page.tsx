@@ -20,12 +20,10 @@ import { Shield, Lock, ArrowRight } from 'lucide-react'
 import type { Institution } from '@/lib/types/database'
 
 export default function SignUpPage() {
-  const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [repeatPassword, setRepeatPassword] = useState('')
   const [institutionId, setInstitutionId] = useState('')
-  const [position, setPosition] = useState('')
   const [institutions, setInstitutions] = useState<Institution[]>([])
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -83,9 +81,7 @@ export default function SignUpPage() {
             process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ||
             `${window.location.origin}/auth/callback`,
           data: {
-            full_name: fullName,
             institution_id: institutionId,
-            position: position,
             role: 'user',
           },
         },
@@ -144,22 +140,6 @@ export default function SignUpPage() {
 
           <form onSubmit={handleSignUp} className="space-y-5">
             <Field>
-              <FieldLabel htmlFor="fullName" className="font-bold text-xs text-gray-700 mb-1.5 block">
-                Nama Lengkap <span className="text-sky-600">*</span>
-              </FieldLabel>
-              <Input
-                id="fullName"
-                type="text"
-                placeholder="Masukkan nama lengkap"
-                required
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                className="pl-4 h-11 bg-white border-gray-200 rounded-xl focus-visible:ring-sky-500 focus-visible:border-sky-500 transition-all text-sm"
-                disabled={isLoading}
-              />
-            </Field>
-
-            <Field>
               <FieldLabel htmlFor="email" className="font-bold text-xs text-gray-700 mb-1.5 block">
                 Email <span className="text-sky-600">*</span>
               </FieldLabel>
@@ -175,44 +155,29 @@ export default function SignUpPage() {
               />
             </Field>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <Field>
-                <FieldLabel htmlFor="institution" className="font-bold text-xs text-gray-700 mb-1.5 block">
-                  Instansi <span className="text-sky-600">*</span>
-                </FieldLabel>
-                <Select value={institutionId} onValueChange={setInstitutionId} disabled={isLoading || isLoadingInstitutions}>
-                  <SelectTrigger id="institution" className="w-full h-11 bg-white border-gray-200 rounded-xl focus:ring-sky-500 focus:border-sky-500 text-sm">
-                    <SelectValue placeholder={isLoadingInstitutions ? "Memuat..." : "Pilih instansi"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {institutions.length === 0 && !isLoadingInstitutions ? (
-                      <div className="p-4 text-sm text-center text-muted-foreground">
-                        Tidak ada instansi ditemukan.
-                      </div>
-                    ) : (
-                      institutions.map((inst) => (
-                        <SelectItem key={inst.id} value={inst.id}>
-                          {inst.name}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-              </Field>
-
-              <Field>
-                <FieldLabel htmlFor="position" className="font-bold text-xs text-gray-700 mb-1.5 block">Jembatan / Jabatan</FieldLabel>
-                <Input
-                  id="position"
-                  type="text"
-                  placeholder="Contoh: Kepala Bagian"
-                  value={position}
-                  onChange={(e) => setPosition(e.target.value)}
-                  className="pl-4 h-11 bg-white border-gray-200 rounded-xl focus-visible:ring-sky-500 focus-visible:border-sky-500 transition-all text-sm"
-                  disabled={isLoading}
-                />
-              </Field>
-            </div>
+            <Field>
+              <FieldLabel htmlFor="institution" className="font-bold text-xs text-gray-700 mb-1.5 block">
+                Instansi <span className="text-sky-600">*</span>
+              </FieldLabel>
+              <Select value={institutionId} onValueChange={setInstitutionId} disabled={isLoading || isLoadingInstitutions}>
+                <SelectTrigger id="institution" className="w-full h-11 bg-white border-gray-200 rounded-xl focus:ring-sky-500 focus:border-sky-500 text-sm">
+                  <SelectValue placeholder={isLoadingInstitutions ? "Memuat..." : "Pilih instansi"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {institutions.length === 0 && !isLoadingInstitutions ? (
+                    <div className="p-4 text-sm text-center text-muted-foreground">
+                      Tidak ada instansi ditemukan.
+                    </div>
+                  ) : (
+                    institutions.map((inst) => (
+                      <SelectItem key={inst.id} value={inst.id}>
+                        {inst.name}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </Field>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <Field>

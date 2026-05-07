@@ -21,8 +21,6 @@ export interface Profile {
   institution_id: string | null
   role: UserRole
   admin_role: string | null
-  full_name: string
-  position: string | null
   phone: string | null
   avatar_url: string | null
   is_approved: boolean

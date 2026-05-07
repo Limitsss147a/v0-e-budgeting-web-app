@@ -67,7 +67,6 @@ export default function UsersPage() {
 
   const filtered = users.filter(u =>
     !searchQuery ||
-    u.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (u.institution as any)?.name?.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
@@ -105,9 +104,7 @@ export default function UsersPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Pengguna</TableHead>
-                  <TableHead>Instansi</TableHead>
-                  <TableHead>Jabatan</TableHead>
+                  <TableHead>Instansi / Akun</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead>Terdaftar</TableHead>
@@ -116,7 +113,8 @@ export default function UsersPage() {
               </TableHeader>
               <TableBody>
                 {filtered.map((user) => {
-                  const initials = user.full_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+                  const instName = (user.institution as any)?.name || 'Admin'
+                  const initials = instName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
                   return (
                     <TableRow key={user.id}>
                       <TableCell>
@@ -124,11 +122,9 @@ export default function UsersPage() {
                           <Avatar className="h-8 w-8">
                             <AvatarFallback className="text-xs bg-primary/10 text-primary">{initials}</AvatarFallback>
                           </Avatar>
-                          <span className="font-medium text-sm">{user.full_name}</span>
+                          <span className="font-medium text-sm">{instName}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{(user.institution as any)?.name || '-'}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{user.position || '-'}</TableCell>
                       <TableCell>
                         {user.role === 'admin' ? (
                           <Badge className="bg-green-100 text-green-800 border-0 text-[11px]"><CheckCircle2 className="mr-1 h-3 w-3" />Admin</Badge>
@@ -155,7 +151,7 @@ export default function UsersPage() {
                                 onClick={async () => {
                                   const result = await approveUserAction(user.id, true)
                                   if (result.error) { toast.error(result.error) } else {
-                                    toast.success(`${user.full_name} telah disetujui`)
+                                    toast.success(`${(user.institution as any)?.name || 'Akun'} telah disetujui`)
                                     setUsers(prev => prev.map(u => u.id === user.id ? { ...u, is_approved: true } : u))
                                   }
                                 }}
@@ -179,7 +175,7 @@ export default function UsersPage() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Ubah Role Pengguna</DialogTitle>
-            <DialogDescription>{editUser?.full_name}</DialogDescription>
+            <DialogDescription>{(editUser?.institution as any)?.name || 'Admin'}</DialogDescription>
           </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">

@@ -120,7 +120,7 @@ export default function DashboardPage() {
       // 2. Fetch only the 5 most recent budgets
       const { data: recentData } = await supabase
         .from('budgets')
-        .select('*, institution:institutions(name, code), submitter:profiles!budgets_submitted_by_fkey(full_name)')
+        .select('*, institution:institutions(name, code)')
         .order('updated_at', { ascending: false })
         .limit(5)
 
@@ -227,7 +227,7 @@ export default function DashboardPage() {
             <h1 className="font-heading text-3xl font-bold tracking-tight text-gray-900">Portal Dashboard</h1>
           </div>
           <p className="text-muted-foreground font-medium flex items-center">
-            Selamat datang, <span className="text-gray-900 font-bold ml-1 mr-1">{profile?.full_name?.split(' ')[0]}!</span>
+            Selamat datang, <span className="text-gray-900 font-bold ml-1 mr-1">{profile?.institution?.name?.split(' ')[0] || (isAdmin ? 'Admin' : 'User')}!</span>
             {profile?.institution?.name && (
                <span className="hidden sm:inline-flex items-center text-xs font-mono uppercase bg-gray-100 px-2 py-0.5 rounded text-gray-600 ml-2">
                   <Building2 className="w-3 h-3 mr-1" /> {profile.institution.name}

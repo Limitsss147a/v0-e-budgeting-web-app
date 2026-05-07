@@ -34,8 +34,6 @@ CREATE TABLE IF NOT EXISTS profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   institution_id UUID REFERENCES institutions(id) ON DELETE SET NULL,
   role user_role DEFAULT 'user',
-  full_name TEXT NOT NULL,
-  position TEXT,
   phone TEXT,
   avatar_url TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),

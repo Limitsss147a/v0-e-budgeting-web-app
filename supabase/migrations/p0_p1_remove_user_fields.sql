@@ -1,7 +1,10 @@
--- E-Budgeting System Profile Auto-Creation Trigger
--- Run this after 003_audit_trigger.sql
+-- Migration to remove full_name and position from profiles table
+-- As per the new requirement: 1 account per institution.
 
--- Function to automatically create profile when user signs up
+-- Drop the trigger to update the function
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+
+-- Update the handle_new_user function to not use full_name
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -23,9 +26,13 @@ BEGIN
 END;
 $$;
 
--- Drop and recreate the trigger
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+-- Re-create the trigger
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW
   EXECUTE FUNCTION public.handle_new_user();
+
+-- Drop the columns from profiles
+ALTER TABLE profiles 
+DROP COLUMN IF EXISTS full_name,
+DROP COLUMN IF EXISTS position;

@@ -51,7 +51,7 @@ export default function ManageBudgetsPage() {
 
     let query = supabase
       .from('budgets')
-      .select('*, institution:institutions(name, code), submitter:profiles!budgets_submitted_by_fkey(full_name)', { count: 'exact' })
+      .select('*, institution:institutions(name, code)', { count: 'exact' })
 
     // P1: Server-side filtering
     if (statusFilter !== 'all') {
@@ -196,7 +196,6 @@ export default function ManageBudgetsPage() {
                 <TableRow>
                   <TableHead>Judul</TableHead>
                   <TableHead>Instansi</TableHead>
-                  <TableHead>Pengaju</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Diperbarui</TableHead>
                   <TableHead className="w-[80px]" />
@@ -219,9 +218,6 @@ export default function ManageBudgetsPage() {
                         )}
                       </TableCell>
                       <TableCell className="text-sm">{(budget as any).institution?.name || '-'}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {(budget as any).submitter?.full_name || '-'}
-                      </TableCell>
                       <TableCell>
                         <Badge className={`${config.color} border-0 text-[11px]`}>{config.label}</Badge>
                       </TableCell>

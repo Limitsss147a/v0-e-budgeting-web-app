@@ -60,7 +60,7 @@ export default function BudgetsPage() {
     try {
       let query = supabase
         .from('budgets')
-        .select('*, institution:institutions(name, code), program:programs(name, code), submitter:profiles!budgets_submitted_by_fkey(full_name)', { count: 'exact' })
+        .select('*, institution:institutions(name, code), program:programs(name, code)', { count: 'exact' })
       
       // Apply filters
       if (statusFilter !== 'all') {

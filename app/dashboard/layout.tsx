@@ -97,12 +97,12 @@ export default function DashboardLayout({
   }
 
   const menuItems = isAdmin ? adminMenuItems : userMenuItems
-  const initials = profile?.full_name
+  const initials = profile?.institution?.name
     ?.split(' ')
     .map((n) => n[0])
     .join('')
     .toUpperCase()
-    .slice(0, 2) || 'U'
+    .slice(0, 2) || (isAdmin ? 'AD' : 'IN')
 
   return (
     <SidebarProvider>
@@ -198,10 +198,10 @@ export default function DashboardLayout({
                     </Avatar>
                     <div className="grid flex-1 text-left text-sm leading-tight">
                       <span className="truncate font-bold">
-                        {profile?.full_name || 'User'}
+                        {profile?.institution?.name || (isAdmin ? 'Administrator' : 'Instansi')}
                       </span>
                       <span className="truncate text-xs text-muted-foreground font-medium">
-                        {isAdmin ? 'Administrator' : profile?.institution?.name || 'User'}
+                        {isAdmin ? (profile?.admin_role || 'Admin') : 'User'}
                       </span>
                     </div>
                     <ChevronUp className="ml-auto h-4 w-4" />
@@ -214,9 +214,9 @@ export default function DashboardLayout({
                 >
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-bold">{profile?.full_name}</p>
+                      <p className="text-sm font-bold">{profile?.institution?.name || (isAdmin ? 'Administrator' : 'Instansi')}</p>
                       <p className="text-xs font-medium text-muted-foreground">
-                        {profile?.position || (isAdmin ? 'Administrator' : 'User')}
+                        {isAdmin ? (profile?.admin_role || 'Admin') : 'User'}
                       </p>
                     </div>
                   </DropdownMenuLabel>
@@ -254,7 +254,7 @@ export default function DashboardLayout({
           <div className="flex items-center gap-3">
             <div className="flex text-right mr-1 sm:mr-3">
               <p className="text-xs font-bold leading-none truncate max-w-[80px] sm:max-w-[150px] mt-0.5">
-                Halo, {profile?.full_name?.split(' ')[0] || 'User'}
+                Halo, {profile?.institution?.name?.split(' ')[0] || (isAdmin ? 'Admin' : 'Instansi')}
               </p>
             </div>
             <NotificationBell />

@@ -66,10 +66,10 @@ export default function ReviewDetailPage() {
 
     const [budgetRes, revisionsRes, docsRes] = await Promise.all([
       supabase.from('budgets')
-        .select('*, institution:institutions(name, code), submitter:profiles!budgets_submitted_by_fkey(full_name, position)')
+        .select('*, institution:institutions(name, code)')
         .eq('id', budgetId).single(),
       supabase.from('revisions')
-        .select('*, reviewer:profiles!revisions_reviewer_id_fkey(full_name)')
+        .select('*, reviewer:profiles!revisions_reviewer_id_fkey(institution:institutions(name), admin_role)')
         .eq('budget_id', budgetId).order('created_at', { ascending: false }),
       supabase.from('budget_documents')
         .select('*')
@@ -224,7 +224,7 @@ export default function ReviewDetailPage() {
             <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground flex-wrap">
               <span className="flex items-center gap-1.5"><FileText className="h-4 w-4" /> {documents.length} Dokumen Terlampir</span>
               <span className="flex items-center gap-1.5"><Clock className="h-4 w-4" /> Diajukan tgl {formatDate(budget.submission_date || budget.created_at)}</span>
-              <span className="flex items-center gap-1.5 font-medium text-foreground"><CheckCircle2 className="h-4 w-4 text-emerald-600" /> Oleh {budget.submitter?.full_name}</span>
+              <span className="flex items-center gap-1.5 font-medium text-foreground"><CheckCircle2 className="h-4 w-4 text-emerald-600" /> Pengajuan Valid</span>
             </div>
           </div>
         </div>
@@ -334,7 +334,7 @@ export default function ReviewDetailPage() {
                       <div className="flex-1 min-w-0 bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden mb-4 hover:shadow-md transition-shadow">
                         <div className="py-2.5 px-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between bg-gray-50/80 gap-2">
                           <div className="min-w-0 flex-1">
-                            <p className="text-sm font-bold text-gray-800 truncate">{(rev as any).reviewer?.full_name || 'System'}</p>
+                            <p className="text-sm font-bold text-gray-800 truncate">{(rev as any).reviewer?.institution?.name || (rev as any).reviewer?.admin_role || 'System'}</p>
                             <p className="text-[11px] text-gray-500 font-medium tracking-wide flex items-center gap-1.5 mt-0.5">
                               <Clock className="w-3 h-3" /> {formatDateTime(rev.created_at)}
                             </p>

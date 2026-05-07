@@ -51,7 +51,7 @@ export default function ReviewPage() {
     try {
       let query = supabase
         .from('budgets')
-        .select('*, institution:institutions(name, code), submitter:profiles!budgets_submitted_by_fkey(full_name)', { count: 'exact' })
+        .select('*, institution:institutions(name, code)', { count: 'exact' })
       
       // Apply status filter
       if (statusFilter === 'pending') {
@@ -151,7 +151,6 @@ export default function ReviewPage() {
                   <TableRow>
                     <TableHead>Judul</TableHead>
                     <TableHead>Instansi</TableHead>
-                    <TableHead>Pengaju</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Tanggal</TableHead>
                     <TableHead className="w-[60px]" />
@@ -169,7 +168,6 @@ export default function ReviewPage() {
                           {budget.version > 1 && <span className="ml-1.5 text-xs text-muted-foreground">v{budget.version}</span>}
                         </TableCell>
                         <TableCell className="text-sm">{(budget as any).institution?.name || '-'}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">{(budget as any).submitter?.full_name || '-'}</TableCell>
                         <TableCell><Badge className={`${config.color} border-0 text-[11px]`}>{config.label}</Badge></TableCell>
                         <TableCell className="text-sm text-muted-foreground">{formatDate(budget.submission_date || budget.updated_at)}</TableCell>
                         <TableCell>

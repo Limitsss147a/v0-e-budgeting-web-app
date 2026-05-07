@@ -72,7 +72,7 @@ export default function AuditLogPage() {
 
     let query = supabase
       .from('audit_logs')
-      .select('*, user:profiles!audit_logs_user_id_fkey(full_name)', { count: 'exact' })
+      .select('*, user:profiles!audit_logs_user_id_fkey(institution:institutions(name), admin_role)', { count: 'exact' })
 
     // P1: Server-side filtering
     if (actionFilter !== 'all') {
@@ -165,7 +165,7 @@ export default function AuditLogPage() {
                 {logs.map((log) => (
                   <TableRow key={log.id} className="text-sm">
                     <TableCell className="text-muted-foreground whitespace-nowrap">{formatDateTime(log.created_at)}</TableCell>
-                    <TableCell className="font-medium">{(log as any).user?.full_name || 'System'}</TableCell>
+                    <TableCell className="font-medium">{(log as any).user?.institution?.name || (log as any).user?.admin_role || 'System'}</TableCell>
                     <TableCell><Badge className={`${actionColor[log.action] || 'bg-gray-100 text-gray-800'} border-0 text-[10px]`}>{log.action}</Badge></TableCell>
                     <TableCell className="font-mono text-xs">{log.table_name}</TableCell>
                     <TableCell className="font-mono text-xs text-muted-foreground">{log.record_id?.slice(0, 8)}...</TableCell>
@@ -206,7 +206,7 @@ export default function AuditLogPage() {
           {selectedLog && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4 text-sm">
-                <div><span className="text-muted-foreground">User:</span> <span className="font-medium">{(selectedLog as any).user?.full_name || 'System'}</span></div>
+                <div><span className="text-muted-foreground">User:</span> <span className="font-medium">{(selectedLog as any).user?.institution?.name || (selectedLog as any).user?.admin_role || 'System'}</span></div>
                 <div><span className="text-muted-foreground">Aksi:</span> <Badge className={`${actionColor[selectedLog.action] || ''} border-0 text-[10px] ml-1`}>{selectedLog.action}</Badge></div>
                 <div><span className="text-muted-foreground">Tabel:</span> <span className="font-mono">{selectedLog.table_name}</span></div>
                 <div><span className="text-muted-foreground">Record:</span> <span className="font-mono text-xs">{selectedLog.record_id}</span></div>
