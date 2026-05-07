@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useProfile } from '@/hooks/use-profile'
 import { formatDate } from '@/lib/format'
 import { statusConfig, type Budget, type BudgetStatus } from '@/lib/types/database'
+import { useDebounce } from '@/hooks/use-debounce'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -28,13 +29,14 @@ export default function ReviewPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
   const pageSize = 10
+  const debouncedSearch = useDebounce(searchQuery)
 
   useEffect(() => {
     if (!profileLoading && profile && isAdmin) {
       setCurrentPage(1)
       fetchBudgets(1)
     }
-  }, [profileLoading, profile, statusFilter, searchQuery])
+  }, [profileLoading, profile, statusFilter, debouncedSearch])
 
   useEffect(() => {
     if (!profileLoading && profile && isAdmin && currentPage > 1) {
@@ -61,7 +63,7 @@ export default function ReviewPage() {
       }
 
       // Apply search
-      if (searchQuery) {
+      if (debouncedSearch) {
         // Simple title search. For instansi search at DB level, 
         // we'd need a more complex join or a view, 
         // but let's stick to title for now for performance.

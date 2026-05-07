@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useProfile } from '@/hooks/use-profile'
+import { useDebounce } from '@/hooks/use-debounce'
 import { formatDateTime } from '@/lib/format'
 import type { AuditLog } from '@/lib/types/database'
 import { Card, CardContent } from '@/components/ui/card'
@@ -29,34 +30,71 @@ export default function AuditLogPage() {
   const [actionFilter, setActionFilter] = useState<string>('all')
   const [tableFilter, setTableFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const debouncedSearch = useDebounce(searchQuery) // P1: Debounced search
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
+  const [tables, setTables] = useState<string[]>([])
+  const pageSize = 30
 
   useEffect(() => {
-    if (!profileLoading && isAdmin) fetchLogs()
+    if (!profileLoading && isAdmin) {
+      // Fetch distinct table names once
+      fetchTables()
+    }
   }, [profileLoading, isAdmin])
 
-  async function fetchLogs() {
+  useEffect(() => {
+    if (!profileLoading && isAdmin) {
+      setCurrentPage(1)
+      fetchLogs(1)
+    }
+  }, [profileLoading, isAdmin, actionFilter, tableFilter, debouncedSearch])
+
+  useEffect(() => {
+    if (!profileLoading && isAdmin && currentPage > 1) {
+      fetchLogs(currentPage)
+    }
+  }, [currentPage])
+
+  async function fetchTables() {
+    const supabase = createClient()
+    const { data } = await supabase.from('audit_logs').select('table_name').limit(500)
+    if (data) {
+      const uniqueTables = [...new Set(data.map(d => d.table_name))]
+      setTables(uniqueTables)
+    }
+  }
+
+  async function fetchLogs(page: number) {
     const supabase = createClient()
     setIsLoading(true)
-    const { data } = await supabase
+
+    let query = supabase
       .from('audit_logs')
-      .select('*, user:profiles!audit_logs_user_id_fkey(full_name)')
+      .select('*, user:profiles!audit_logs_user_id_fkey(full_name)', { count: 'exact' })
+
+    // P1: Server-side filtering
+    if (actionFilter !== 'all') {
+      query = query.eq('action', actionFilter)
+    }
+    if (tableFilter !== 'all') {
+      query = query.eq('table_name', tableFilter)
+    }
+
+    const from = (page - 1) * pageSize
+    const to = from + pageSize - 1
+
+    const { data, count } = await query
       .order('created_at', { ascending: false })
-      .limit(200)
+      .range(from, to)
+
     if (data) setLogs(data as unknown as AuditLog[])
+    setTotalCount(count || 0)
     setIsLoading(false)
   }
 
-  const filtered = logs.filter(log => {
-    const matchesAction = actionFilter === 'all' || log.action === actionFilter
-    const matchesTable = tableFilter === 'all' || log.table_name === tableFilter
-    const matchesSearch = !searchQuery ||
-      (log.user as any)?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.table_name.toLowerCase().includes(searchQuery.toLowerCase())
-    return matchesAction && matchesTable && matchesSearch
-  })
-
-  const tables = [...new Set(logs.map(l => l.table_name))]
+  const totalPages = Math.ceil(totalCount / pageSize)
 
   const actionColor: Record<string, string> = {
     INSERT: 'bg-green-100 text-green-800',
@@ -106,7 +144,7 @@ export default function AuditLogPage() {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-6 space-y-3">{[...Array(8)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
-          ) : filtered.length === 0 ? (
+          ) : logs.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16">
               <ScrollText className="h-12 w-12 text-muted-foreground/40 mb-3" />
               <p className="text-muted-foreground">Tidak ada log ditemukan</p>
@@ -124,7 +162,7 @@ export default function AuditLogPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((log) => (
+                {logs.map((log) => (
                   <TableRow key={log.id} className="text-sm">
                     <TableCell className="text-muted-foreground whitespace-nowrap">{formatDateTime(log.created_at)}</TableCell>
                     <TableCell className="font-medium">{(log as any).user?.full_name || 'System'}</TableCell>
@@ -143,6 +181,20 @@ export default function AuditLogPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* P1: Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-muted-foreground">
+            Menampilkan <span className="font-bold text-gray-900">{logs.length}</span> dari <span className="font-bold text-gray-900">{totalCount}</span>
+          </p>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1 || isLoading} className="h-8 text-xs font-bold">Sebelumnya</Button>
+            <div className="flex items-center justify-center min-w-[2rem] h-8 text-xs font-bold bg-gray-50 rounded-md border border-gray-100">{currentPage} / {totalPages}</div>
+            <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} disabled={currentPage >= totalPages || isLoading} className="h-8 text-xs font-bold">Berikutnya</Button>
+          </div>
+        </div>
+      )}
 
       {/* Detail Dialog */}
       <Dialog open={!!selectedLog} onOpenChange={() => setSelectedLog(null)}>

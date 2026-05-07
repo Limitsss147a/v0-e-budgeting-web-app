@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useProfile } from '@/hooks/use-profile'
+import { useDebounce } from '@/hooks/use-debounce'
 import { formatDate } from '@/lib/format'
 import { statusConfig, type Budget, type BudgetStatus } from '@/lib/types/database'
 import { Card, CardContent } from '@/components/ui/card'
@@ -38,31 +39,54 @@ export default function ManageBudgetsPage() {
   const [isDeleting, setIsDeleting] = useState(false)
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const debouncedSearch = useDebounce(searchQuery) // P1: Debounced search
   const [budgetToDelete, setBudgetToDelete] = useState<Budget | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
+  const pageSize = 15
 
-  const fetchBudgets = useCallback(async () => {
+  const fetchBudgets = useCallback(async (page: number) => {
     const supabase = createClient()
     setIsLoading(true)
-    const { data } = await supabase
+
+    let query = supabase
       .from('budgets')
-      .select('*, institution:institutions(name, code), submitter:profiles!budgets_submitted_by_fkey(full_name)')
+      .select('*, institution:institutions(name, code), submitter:profiles!budgets_submitted_by_fkey(full_name)', { count: 'exact' })
+
+    // P1: Server-side filtering
+    if (statusFilter !== 'all') {
+      query = query.eq('status', statusFilter)
+    }
+    if (debouncedSearch) {
+      query = query.ilike('title', `%${debouncedSearch}%`)
+    }
+
+    const from = (page - 1) * pageSize
+    const to = from + pageSize - 1
+
+    const { data, count } = await query
       .order('updated_at', { ascending: false })
+      .range(from, to)
+
     if (data) setBudgets(data as Budget[])
+    setTotalCount(count || 0)
     setIsLoading(false)
-  }, [])
+  }, [statusFilter, debouncedSearch])
 
   useEffect(() => {
-    if (!profileLoading && profile && isAdmin) fetchBudgets()
-  }, [profileLoading, profile, isAdmin, fetchBudgets])
+    if (!profileLoading && profile && isAdmin) {
+      setCurrentPage(1)
+      fetchBudgets(1)
+    }
+  }, [profileLoading, profile, isAdmin, statusFilter, debouncedSearch, fetchBudgets])
 
-  const filteredBudgets = budgets.filter(b => {
-    const matchesStatus = statusFilter === 'all' || b.status === statusFilter
-    const matchesSearch = !searchQuery ||
-      b.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (b as any).institution?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (b as any).submitter?.full_name?.toLowerCase().includes(searchQuery.toLowerCase())
-    return matchesStatus && matchesSearch
-  })
+  useEffect(() => {
+    if (!profileLoading && profile && isAdmin && currentPage > 1) {
+      fetchBudgets(currentPage)
+    }
+  }, [currentPage])
+
+  const totalPages = Math.ceil(totalCount / pageSize)
 
   async function handleDelete() {
     if (!budgetToDelete) return
@@ -84,6 +108,7 @@ export default function ManageBudgetsPage() {
       })
     } else {
       setBudgets(prev => prev.filter(b => b.id !== budgetToDelete.id))
+      setTotalCount(prev => prev - 1)
       toast({
         title: 'Pengajuan dihapus',
         description: `"${budgetToDelete.title}" berhasil dihapus dari sistem.`,
@@ -111,8 +136,7 @@ export default function ManageBudgetsPage() {
           <p className="text-muted-foreground">Kelola seluruh pengajuan anggaran — hapus data yang tidak diperlukan lagi</p>
         </div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span className="font-semibold text-foreground">{filteredBudgets.length}</span> dari{' '}
-          <span className="font-semibold text-foreground">{budgets.length}</span> pengajuan
+          <span className="font-semibold text-foreground">{totalCount}</span> pengajuan
         </div>
       </div>
 
@@ -160,7 +184,7 @@ export default function ManageBudgetsPage() {
             <div className="p-6 space-y-3">
               {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-14 w-full" />)}
             </div>
-          ) : filteredBudgets.length === 0 ? (
+          ) : budgets.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16">
               <Archive className="h-12 w-12 text-muted-foreground/40 mb-3" />
               <h3 className="font-semibold text-lg">Tidak ada pengajuan</h3>
@@ -179,7 +203,7 @@ export default function ManageBudgetsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredBudgets.map((budget) => {
+                {budgets.map((budget) => {
                   const config = statusConfig[budget.status as BudgetStatus]
                   return (
                     <TableRow key={budget.id} className="group">
@@ -229,6 +253,20 @@ export default function ManageBudgetsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* P1: Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-muted-foreground">
+            Menampilkan <span className="font-bold text-gray-900">{budgets.length}</span> dari <span className="font-bold text-gray-900">{totalCount}</span>
+          </p>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1 || isLoading} className="h-8 text-xs font-bold">Sebelumnya</Button>
+            <div className="flex items-center justify-center min-w-[2rem] h-8 text-xs font-bold bg-gray-50 rounded-md border border-gray-100">{currentPage} / {totalPages}</div>
+            <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} disabled={currentPage >= totalPages || isLoading} className="h-8 text-xs font-bold">Berikutnya</Button>
+          </div>
+        </div>
+      )}
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!budgetToDelete} onOpenChange={(open) => !open && setBudgetToDelete(null)}>

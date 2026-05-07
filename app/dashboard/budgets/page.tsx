@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useProfile } from '@/hooks/use-profile'
 import { formatDate } from '@/lib/format'
 import { statusConfig, type Budget, type BudgetStatus } from '@/lib/types/database'
+import { useDebounce } from '@/hooks/use-debounce'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -37,13 +38,14 @@ export default function BudgetsPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
   const pageSize = 10
+  const debouncedSearch = useDebounce(searchQuery)
 
   useEffect(() => {
     if (!profileLoading && profile) {
       setCurrentPage(1) // Reset to first page when filter changes
       fetchBudgets(1)
     }
-  }, [profileLoading, profile, statusFilter, searchQuery])
+  }, [profileLoading, profile, statusFilter, debouncedSearch])
 
   useEffect(() => {
     if (!profileLoading && profile && currentPage > 1) {
@@ -65,8 +67,8 @@ export default function BudgetsPage() {
         query = query.eq('status', statusFilter)
       }
       
-      if (searchQuery) {
-        query = query.ilike('title', `%${searchQuery}%`)
+      if (debouncedSearch) {
+        query = query.ilike('title', `%${debouncedSearch}%`)
       }
 
       // Apply pagination

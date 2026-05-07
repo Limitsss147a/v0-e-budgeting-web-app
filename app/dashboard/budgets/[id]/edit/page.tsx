@@ -12,6 +12,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { toast } from 'sonner'
 import { ArrowLeft, Save, FileText, UploadCloud, Download, X, Building2 } from 'lucide-react'
 import Link from 'next/link'
+import { submitBudgetAction } from '../../actions'
 
 export default function EditBudgetPage() {
   const params = useParams()
@@ -21,6 +22,7 @@ export default function EditBudgetPage() {
 
   const [budget, setBudget] = useState<any>(null)
   const [title, setTitle] = useState('')
+  const [existingDocs, setExistingDocs] = useState<any[]>([])
   const [notaDinasFiles, setNotaDinasFiles] = useState<File[]>([])
   const [rkaDpaFiles, setRkaDpaFiles] = useState<File[]>([])
   const [isSaving, setIsSaving] = useState(false)
@@ -31,34 +33,33 @@ export default function EditBudgetPage() {
   async function fetchBudget() {
     setIsLoading(true)
     const supabase = createClient()
-    const { data, error } = await supabase.from('budgets').select('*, institution:institutions(name)').eq('id', budgetId).single()
-    if (error || !data) {
+    const [budgetRes, docsRes] = await Promise.all([
+      supabase.from('budgets').select('*, institution:institutions(name)').eq('id', budgetId).single(),
+      supabase.from('budget_documents').select('*').eq('budget_id', budgetId).order('created_at', { ascending: false }),
+    ])
+    if (budgetRes.error || !budgetRes.data) {
       toast.error('Pengajuan tidak ditemukan')
       router.push('/dashboard/budgets')
       return
     }
-    setBudget(data)
-    setTitle(data.title)
+    setBudget(budgetRes.data)
+    setTitle(budgetRes.data.title)
+    if (docsRes.data) setExistingDocs(docsRes.data)
     setIsLoading(false)
   }
 
-  async function handleSubmit() {
+  async function handleSubmit(asDraft: boolean) {
     if (!title.trim()) { toast.error('Judul pengajuan wajib diisi'); return }
     setIsSaving(true)
     const supabase = createClient()
 
     try {
-      const updates = { 
+      // Update title
+      const { error: titleError } = await supabase.from('budgets').update({ 
         title, 
-        updated_at: new Date().toISOString(),
-        status: 'submitted',
-        review_bapperida: 'pending',
-        review_setda: 'pending',
-        review_anggaran: 'pending',
-        review_aset: 'pending'
-      }
-      const { error: budgetError } = await supabase.from('budgets').update(updates).eq('id', budgetId)
-      if (budgetError) throw budgetError
+        updated_at: new Date().toISOString() 
+      }).eq('id', budgetId)
+      if (titleError) throw titleError
 
       const docsToUpload = []
       
@@ -81,11 +82,22 @@ export default function EditBudgetPage() {
       }
 
       if (docsToUpload.length > 0) {
-        // Optional: delete old documents before inserting new ones
         await supabase.from('budget_documents').insert(docsToUpload)
       }
 
-      toast.success('Pengajuan RKA/DPA berhasil diperbarui')
+      if (!asDraft) {
+        // P1: Use server action for re-submission with review status reset
+        const result = await submitBudgetAction(budgetId)
+        if (result.error) {
+          toast.error(result.error)
+          setIsSaving(false)
+          return
+        }
+        toast.success('Pengajuan berhasil diperbarui dan diajukan ulang')
+      } else {
+        toast.success('Pengajuan berhasil diperbarui (draft)')
+      }
+      
       router.push(`/dashboard/budgets/${budgetId}`)
     } catch (error: any) {
       toast.error(`Gagal menyimpan: ${error?.message || 'Terjadi kesalahan'}`)
@@ -220,11 +232,17 @@ export default function EditBudgetPage() {
         </CardContent>
       </Card>
 
-      <div className="flex justify-end">
-        <Button onClick={handleSubmit} disabled={isSaving} className="w-full sm:w-auto">
+      <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+        <Button variant="outline" onClick={() => handleSubmit(true)} disabled={isSaving} className="sm:w-auto">
           {isSaving ? <Spinner className="mr-2 h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />}
-          Simpan Perubahan
+          Simpan Draft
         </Button>
+        {budget?.status === 'revision' && (
+          <Button onClick={() => handleSubmit(false)} disabled={isSaving} className="sm:w-auto bg-sky-600 hover:bg-sky-700 text-white font-bold">
+            {isSaving ? <Spinner className="mr-2 h-4 w-4" /> : <UploadCloud className="mr-2 h-4 w-4" />}
+            Ajukan Ulang Setelah Revisi
+          </Button>
+        )}
       </div>
     </div>
   )

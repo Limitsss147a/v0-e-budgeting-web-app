@@ -19,6 +19,7 @@ import {
 import { toast } from 'sonner'
 import { ArrowLeft, CheckCircle2, XCircle, AlertCircle, ArrowRightLeft, MessageSquare, FileText, Download, Clock, Shield, Lock, Trash2, Edit2, ClipboardCheck, Building2 } from 'lucide-react'
 import Link from 'next/link'
+import { submitReviewAction } from './actions'
 
 type AdminReviewRole = 'review_bapperida' | 'review_setda' | 'review_anggaran' | 'review_aset'
 type ReviewAction = 'approve' | 'revision' | 'reject'
@@ -97,60 +98,23 @@ export default function ReviewDetailPage() {
     if (!comments.trim()) { toast.error('Komentar wajib diisi'); return }
 
     setIsProcessing(true)
-    const supabase = createClient()
 
     try {
-      const roleStatus = reviewAction === 'approve' ? 'approved' : reviewAction === 'revision' ? 'revision' : 'rejected'
-      
-      const { error: docError } = await supabase.from('budget_documents').update({
-        [activeRole.key]: roleStatus,
-      }).eq('id', activeDocumentId)
-      
-      if (docError) throw docError
-
-      const roleName = ADMIN_ROLES.find(r => r.key === activeRole.key)?.label
-      const actionName = reviewAction === 'approve' ? 'Menyetujui' : reviewAction === 'revision' ? 'Meminta Revisi' : 'Menolak'
-      const docName = documents.find(d => d.id === activeDocumentId)?.file_name || 'Dokumen'
-
-      const { error: revError } = await supabase.from('revisions').insert({
-        budget_id: budgetId,
-        document_id: activeDocumentId,
-        reviewer_id: profile.id,
-        from_status: budget.status,
-        to_status: budget.status,
-        comments: `[${roleName}] - ${actionName} dokumen "${docName}": ${comments}`,
+      // P0: Use server action for server-side admin_role validation
+      const result = await submitReviewAction({
+        budgetId,
+        documentId: activeDocumentId,
+        reviewRoleKey: activeRole.key,
+        action: reviewAction,
+        comments,
       })
-      if (revError) throw revError
 
-      const docsRes = await supabase.from('budget_documents').select('*').eq('budget_id', budgetId)
-      if (docsRes.data) {
-        let hasRejected = false
-        let hasRevision = false
-        let allApproved = true
-
-        for (const doc of docsRes.data) {
-          const docStatuses = [doc.review_bapperida, doc.review_setda, doc.review_anggaran, doc.review_aset]
-          if (docStatuses.includes('rejected')) hasRejected = true
-          if (docStatuses.includes('revision')) hasRevision = true
-          if (!docStatuses.every(s => s === 'approved')) allApproved = false
-        }
-
-        let newGlobalStatus: BudgetStatus = budget.status
-        if (hasRejected) newGlobalStatus = 'rejected'
-        else if (hasRevision) newGlobalStatus = 'revision'
-        else if (allApproved) newGlobalStatus = 'approved'
-        else newGlobalStatus = 'under_review'
-
-        if (newGlobalStatus !== budget.status) {
-          await supabase.from('budgets').update({
-            status: newGlobalStatus,
-            reviewed_by: profile.id,
-            review_date: new Date().toISOString()
-          }).eq('id', budgetId)
-        }
+      if (result.error) {
+        toast.error(result.error)
+        return
       }
 
-      toast.success(`Review ${roleName} berhasil disimpan`)
+      toast.success(`Review ${result.roleName} berhasil disimpan`)
       setReviewAction(null)
       setActiveRole(null)
       setActiveDocumentId(null)

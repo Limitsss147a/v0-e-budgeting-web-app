@@ -74,6 +74,8 @@ export async function updateSession(request: NextRequest) {
    * Admin-only routes — server-side enforcement (defense-in-depth).
    * Even though RLS protects database data, this prevents non-admins from
    * accessing admin UI pages at the middleware level.
+   * 
+   * Also checks is_approved for all dashboard routes (P0).
    */
   const adminOnlyPrefixes = [
     '/dashboard/users',
@@ -84,19 +86,34 @@ export async function updateSession(request: NextRequest) {
   ]
 
   const isAdminRoute = adminOnlyPrefixes.some((prefix) => pathname.startsWith(prefix))
+  const isDashboardRoute = pathname.startsWith('/dashboard')
 
-  if (user && isAdminRoute) {
+  if (user && isDashboardRoute) {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('role')
+      .select('role, is_approved')
       .eq('id', user.id)
       .single()
 
-    if (!profile || profile.role !== 'admin') {
+    // P0: Check if user is approved
+    if (profile && !profile.is_approved && profile.role !== 'admin') {
+      // Allow access to pending-approval page only
+      if (pathname !== '/dashboard/pending-approval') {
+        const url = request.nextUrl.clone()
+        url.pathname = '/dashboard/pending-approval'
+        const redirectResponse = NextResponse.redirect(url)
+        supabaseResponse.cookies.getAll().forEach((cookie) => {
+          redirectResponse.cookies.set(cookie.name, cookie.value, cookie)
+        })
+        return redirectResponse
+      }
+    }
+
+    // Admin route protection
+    if (isAdminRoute && (!profile || profile.role !== 'admin')) {
       const url = request.nextUrl.clone()
       url.pathname = '/dashboard'
       url.searchParams.set('forbidden', '1')
-
       const redirectResponse = NextResponse.redirect(url)
       supabaseResponse.cookies.getAll().forEach((cookie) => {
         redirectResponse.cookies.set(cookie.name, cookie.value, cookie)

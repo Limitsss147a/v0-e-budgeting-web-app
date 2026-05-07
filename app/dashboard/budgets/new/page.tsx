@@ -12,6 +12,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { toast } from 'sonner'
 import { ArrowLeft, Save, Send, FileText, UploadCloud, X, Building2 } from 'lucide-react'
 import Link from 'next/link'
+import { createBudgetAction, submitBudgetAction } from '../actions'
 
 // ---------- File Upload Validation ----------
 const ALLOWED_EXTENSIONS = ['.pdf', '.doc', '.docx', '.xls', '.xlsx']
@@ -72,77 +73,58 @@ export default function NewBudgetPage() {
     }
 
     setIsSaving(true)
-    const supabase = createClient()
 
     try {
-      // Get active fiscal year
-      const { data: fiscalYear } = await supabase
-        .from('fiscal_years')
-        .select('id')
-        .eq('is_active', true)
-        .single()
-
-      if (!fiscalYear) {
-        toast.error('Tidak ada tahun anggaran aktif')
+      // P0: Use server action for creation with validated institution_id
+      const result = await createBudgetAction({ title, asDraft })
+      if (result.error) {
+        toast.error(result.error)
         return
       }
 
-      // Create budget
-      const { data: budget, error: budgetError } = await supabase
-        .from('budgets')
-        .insert({
-          title,
-          institution_id: profile!.institution_id,
-          fiscal_year_id: fiscalYear.id,
-          submitted_by: profile!.id,
-          status: 'draft', // Always draft initially
-          submission_date: asDraft ? null : new Date().toISOString(),
-          total_amount: 0,
-        })
-        .select()
-        .single()
+      const budgetId = result.budgetId!
+      const userId = result.userId!
+      const supabase = createClient()
 
-      if (budgetError) throw budgetError
-
-      // Insert budget documents
+      // Upload files (still client-side for binary data)
       const docsToUpload = []
       
       for (const notaFile of notaDinasFiles) {
         const ext = notaFile.name.split('.').pop()
-        const fileName = `${budget.id}/nota_dinas_${Math.random().toString(36).substring(2, 9)}.${ext}`
+        const fileName = `${budgetId}/nota_dinas_${Math.random().toString(36).substring(2, 9)}.${ext}`
         const { error: uploadError } = await supabase.storage.from('budget_documents').upload(fileName, notaFile)
         if (uploadError) {
           console.error('Nota Dinas upload error:', uploadError)
           toast.error(`Gagal mengunggah file ${notaFile.name}: ` + uploadError.message)
         } else {
           docsToUpload.push({
-            budget_id: budget.id,
+            budget_id: budgetId,
             file_name: notaFile.name,
             file_path: fileName,
             file_type: notaFile.type || 'application/octet-stream',
             file_size: notaFile.size,
             document_type: 'nota_dinas',
-            uploaded_by: profile!.id
+            uploaded_by: userId
           })
         }
       }
 
       for (const rkaFile of rkaDpaFiles) {
         const ext = rkaFile.name.split('.').pop()
-        const fileName = `${budget.id}/rka_dpa_${Math.random().toString(36).substring(2, 9)}.${ext}`
+        const fileName = `${budgetId}/rka_dpa_${Math.random().toString(36).substring(2, 9)}.${ext}`
         const { error: uploadError } = await supabase.storage.from('budget_documents').upload(fileName, rkaFile)
         if (uploadError) {
           console.error('RKA/DPA upload error:', uploadError)
           toast.error(`Gagal mengunggah file ${rkaFile.name}: ` + uploadError.message)
         } else {
           docsToUpload.push({
-            budget_id: budget.id,
+            budget_id: budgetId,
             file_name: rkaFile.name,
             file_path: fileName,
             file_type: rkaFile.type || 'application/octet-stream',
             file_size: rkaFile.size,
             document_type: 'rka_dpa',
-            uploaded_by: profile!.id
+            uploaded_by: userId
           })
         }
       }
@@ -155,11 +137,12 @@ export default function NewBudgetPage() {
       }
 
       if (!asDraft) {
-        const { error: updateError } = await supabase
-          .from('budgets')
-          .update({ status: 'submitted' })
-          .eq('id', budget.id)
-        if (updateError) throw updateError
+        // P0: Use server action to submit with ownership validation
+        const submitResult = await submitBudgetAction(budgetId)
+        if (submitResult.error) {
+          toast.error(submitResult.error)
+          return
+        }
       }
 
       toast.success(asDraft ? 'Pengajuan berhasil disimpan sebagai draft' : 'Pengajuan RKA/DPA berhasil diajukan')

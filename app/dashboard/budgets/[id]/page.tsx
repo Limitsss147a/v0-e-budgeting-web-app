@@ -19,6 +19,7 @@ import {
   ArrowLeft, Edit, Send, Trash2, FileText, Download, Clock, CheckCircle2, XCircle, AlertCircle, ArrowRightLeft, MessageSquare, Printer, Building2
 } from 'lucide-react'
 import Link from 'next/link'
+import { submitBudgetAction } from '../actions'
 
 export default function BudgetDetailPage() {
   const params = useParams()
@@ -58,14 +59,17 @@ export default function BudgetDetailPage() {
 
   async function handleSubmit() {
     setIsSubmitting(true)
-    const supabase = createClient()
-
-    const { error } = await supabase.from('budgets').update({ status: 'submitted', submission_date: new Date().toISOString() }).eq('id', budgetId)
-    if (error) {
+    try {
+      // P0: Use server action for ownership validation
+      const result = await submitBudgetAction(budgetId)
+      if (result.error) {
+        toast.error(result.error)
+      } else {
+        toast.success(budget?.status === 'revision' ? 'RKA/DPA berhasil diajukan ulang setelah revisi' : 'RKA/DPA berhasil diajukan')
+        fetchBudgetDetail()
+      }
+    } catch {
       toast.error('Gagal mengajukan RKA/DPA')
-    } else {
-      toast.success('RKA/DPA berhasil diajukan')
-      fetchBudgetDetail()
     }
     setIsSubmitting(false)
   }
@@ -96,7 +100,8 @@ export default function BudgetDetailPage() {
   if (!budget) return <div className="flex flex-col items-center justify-center py-20"><p>Pengajuan tidak ditemukan</p></div>
 
   const config = statusConfig[budget.status as BudgetStatus]
-  const canSubmit = !isAdmin && budget.status === 'draft'
+  const canSubmit = !isAdmin && (budget.status === 'draft' || budget.status === 'revision')
+  const canEdit = !isAdmin && (budget.status === 'draft' || budget.status === 'revision')
   const canDelete = !isAdmin && budget.status === 'draft'
 
   const statusBadgeColor = (status: string) => {
@@ -148,10 +153,18 @@ export default function BudgetDetailPage() {
           </div>
         </div>
         <div className="flex gap-2 sm:ml-auto">
+          {canEdit && (
+            <Button variant="outline" size="sm" asChild>
+              <Link href={`/dashboard/budgets/${budgetId}/edit`}>
+                <Edit className="mr-1 h-3 w-3" />
+                {budget.status === 'revision' ? 'Edit & Revisi' : 'Edit'}
+              </Link>
+            </Button>
+          )}
           {canSubmit && (
             <Button size="sm" onClick={handleSubmit} disabled={isSubmitting}>
               {isSubmitting ? <Spinner className="mr-1" /> : <Send className="mr-1 h-3 w-3" />}
-              Ajukan
+              {budget.status === 'revision' ? 'Ajukan Ulang' : 'Ajukan'}
             </Button>
           )}
           <Button variant="outline" size="sm" onClick={() => window.print()} className="print:hidden">

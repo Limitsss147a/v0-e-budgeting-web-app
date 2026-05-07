@@ -21,7 +21,8 @@ import {
 } from '@/components/ui/dialog'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { toast } from 'sonner'
-import { Users, Search, Shield, User as UserIcon } from 'lucide-react'
+import { Users, Search, Shield, User as UserIcon, CheckCircle2, XCircle, Clock } from 'lucide-react'
+import { approveUserAction } from './actions'
 
 export default function UsersPage() {
   const { isAdmin, isLoading: profileLoading } = useProfile()
@@ -79,6 +80,12 @@ export default function UsersPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Kelola Pengguna</h1>
         <p className="text-muted-foreground">Daftar pengguna dan pengaturan role</p>
+        {users.filter(u => !u.is_approved && u.role !== 'admin').length > 0 && (
+          <Badge variant="destructive" className="mt-1 text-xs">
+            <Clock className="mr-1 h-3 w-3" />
+            {users.filter(u => !u.is_approved && u.role !== 'admin').length} menunggu persetujuan
+          </Badge>
+        )}
       </div>
 
       <Card>
@@ -101,9 +108,10 @@ export default function UsersPage() {
                   <TableHead>Pengguna</TableHead>
                   <TableHead>Instansi</TableHead>
                   <TableHead>Jabatan</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead>Terdaftar</TableHead>
-                  <TableHead className="w-[80px]" />
+                  <TableHead className="w-[120px]" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -122,13 +130,40 @@ export default function UsersPage() {
                       <TableCell className="text-sm text-muted-foreground">{(user.institution as any)?.name || '-'}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{user.position || '-'}</TableCell>
                       <TableCell>
+                        {user.role === 'admin' ? (
+                          <Badge className="bg-green-100 text-green-800 border-0 text-[11px]"><CheckCircle2 className="mr-1 h-3 w-3" />Admin</Badge>
+                        ) : user.is_approved ? (
+                          <Badge className="bg-green-100 text-green-800 border-0 text-[11px]"><CheckCircle2 className="mr-1 h-3 w-3" />Disetujui</Badge>
+                        ) : (
+                          <Badge className="bg-amber-100 text-amber-800 border-0 text-[11px]"><Clock className="mr-1 h-3 w-3" />Menunggu</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
                         <Badge variant={user.role === 'admin' ? 'default' : 'secondary'} className="text-[11px]">
                           {user.role === 'admin' ? <><Shield className="mr-1 h-3 w-3" />Admin {user.admin_role && user.admin_role !== 'superadmin' ? `(${user.admin_role})` : ''}</> : <><UserIcon className="mr-1 h-3 w-3" />User</>}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">{formatDate(user.created_at)}</TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="sm" onClick={() => { setEditUser(user); setNewRole(user.role); setNewAdminRole(user.admin_role || 'superadmin'); }}>Ubah</Button>
+                        <div className="flex items-center gap-1">
+                          {!user.is_approved && user.role !== 'admin' && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 text-green-700 hover:text-green-800 hover:bg-green-50 text-xs font-bold"
+                                onClick={async () => {
+                                  const result = await approveUserAction(user.id, true)
+                                  if (result.error) { toast.error(result.error) } else {
+                                    toast.success(`${user.full_name} telah disetujui`)
+                                    setUsers(prev => prev.map(u => u.id === user.id ? { ...u, is_approved: true } : u))
+                                  }
+                                }}
+                              >Setujui</Button>
+                            </>
+                          )}
+                          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { setEditUser(user); setNewRole(user.role); setNewAdminRole(user.admin_role || 'superadmin'); }}>Ubah</Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   )
