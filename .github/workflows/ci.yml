@@ -33,6 +33,5 @@ jobs:
     - name: Type Check
       run: pnpm exec tsc --noEmit
       
-    # Note: E2E and Unit Tests will be added here once written
-    - name: Run Tests
-      run: pnpm run test
+    # Note: E2E and Unit Tests are currently disabled per user request
+
