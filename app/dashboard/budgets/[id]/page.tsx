@@ -96,7 +96,7 @@ export default function BudgetDetailPage() {
     }
   }
 
-  if (isLoading) return <div className="space-y-6 max-w-4xl"><Skeleton className="h-8 w-64" /><Card><CardContent className="p-6"><Skeleton className="h-40 w-full" /></CardContent></Card></div>
+  if (isLoading) return <div className="space-y-6 w-full"><Skeleton className="h-8 w-64" /><Card><CardContent className="p-6"><Skeleton className="h-40 w-full" /></CardContent></Card></div>
   if (!budget) return <div className="flex flex-col items-center justify-center py-20"><p>Pengajuan tidak ditemukan</p></div>
 
   const config = statusConfig[budget.status as BudgetStatus]
@@ -139,7 +139,7 @@ export default function BudgetDetailPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl overflow-hidden w-full">
+    <div className="space-y-6 overflow-hidden w-full">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between w-full min-w-0">
         <div className="flex items-start gap-3 w-full min-w-0 flex-1">
           <Button variant="ghost" size="icon" asChild className="mt-1 shrink-0">
@@ -300,7 +300,6 @@ export default function BudgetDetailPage() {
             color: black !important;
           }
           .max-w-4xl {
-            max-width: 100% !important;
             width: 100% !important;
             margin: 0 !important;
             padding: 0 !important;
