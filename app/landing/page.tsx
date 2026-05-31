@@ -33,8 +33,8 @@ export default function LandingPage() {
           </div>
 
           <nav className="hidden md:flex items-center gap-8">
+            <Link href="https://sapa-anggaran.com/" target="_blank" rel="noopener noreferrer" className="text-xs font-mono tracking-widest hover:text-sky-500 transition-colors">SAPA ANGGARAN</Link>
             <Link href="#portal" className="text-xs font-mono tracking-widest hover:text-sky-500 transition-colors">PORTAL</Link>
-            <Link href="#presence" className="text-xs font-mono tracking-widest hover:text-sky-500 transition-colors">PRESENCE</Link>
           </nav>
 
           <Button asChild className="rounded-full bg-white text-black hover:bg-gray-200 uppercase tracking-widest text-[9px] sm:text-[10px] md:text-xs px-3 sm:px-4 md:px-6 h-7 sm:h-8 md:h-10 font-bold transition-transform hover:scale-105 shrink-0">
@@ -45,7 +45,7 @@ export default function LandingPage() {
 
       {/* Main Content Scrollable Area */}
       <div className="relative z-10 w-full pt-20">
-        
+
         {/* Hero Section */}
         <section id="portal" className="min-h-[85vh] flex flex-col items-center justify-center relative px-2 sm:px-4">
           {/* Subtle Radial Glow */}
@@ -59,7 +59,7 @@ export default function LandingPage() {
             )}
           />
 
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
@@ -73,7 +73,7 @@ export default function LandingPage() {
         </section>
 
 
-        
+
         {/* Call to Action Footer */}
         <section className="py-24 relative bg-[#050508] flexflex-col items-center justify-center text-center px-4 border-t border-white/5">
           <h2 className="font-heading text-4xl md:text-5xl font-bold mb-8">Siap Melakukan Verifikasi?</h2>
@@ -87,7 +87,7 @@ export default function LandingPage() {
         {/* Minimal Footer */}
         <footer className="py-8 bg-black border-t border-white/5 text-center">
           <p className="font-mono text-[10px] text-white/30 tracking-widest uppercase">
-            &copy; {new Date().getFullYear()} SIVRON SISTEM VERIFIKASI RKA ONLINE - v2.1.0
+            &copy; {new Date().getFullYear()} SIVRON SISTEM VERIFIKASI RKA ONLINE
           </p>
         </footer>
       </div>
